@@ -82,9 +82,9 @@ grayImage = cv2.cvtColor(image.astype(np.float32) / 255.0, cv2.COLOR_BGR2GRAY)
 
 
 def compute_and_save():
-    (a, b) = HKD.computeHarrisValues(grayImage)  # Todo1
-    c = HKD.computeLocalMaxima(a)  # Todo2
-    d = HKD.detectKeypoints(image)  # Todo3
+    (a, b) = HKD.computeHarrisValues(grayImage)  # Todo 1
+    c = HKD.computeLocalMaxima(a)  # Todo 2
+    d = HKD.detectKeypoints(image)  # Todo 3
     e = SFD.describeFeatures(image, d)  # Todo 4
     f = MFD.describeFeatures(image, d)  # Todo 5,6
     # No test for Todo 7 or 8

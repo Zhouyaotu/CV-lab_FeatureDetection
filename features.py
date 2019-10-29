@@ -120,7 +120,20 @@ class HarrisKeypointDetector(KeypointDetector):
         # for direction on how to do this. Also compute an orientation
         # for each pixel and store it in 'orientationImage.'
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO in features.py not implemented")
+        Ix = scipy.ndimage.sobel(srcImage,axis=1)
+        Iy = scipy.ndimage.sobel(srcImage,axis=0)
+        #  print(Ix.shape,'\n',Iy[50:100,50:100])
+        gIx2 = scipy.ndimage.gaussian_filter(np.dot(Ix,Ix),sigma=0.5)
+        gIy2 = scipy.ndimage.gaussian_filter(np.dot(Iy,Iy),sigma=0.5)
+        gIxIy = scipy.ndimage.gaussian_filter(np.dot(Ix,Iy),sigma=0.5)
+
+        detH = np.dot(gIx2,gIy2)-np.dot(gIxIy,gIxIy)
+        traceH = gIxIy+gIxIy
+        k=0.1
+        harrisImage = detH-k*np.dot(traceH,traceH)
+
+        orientationImage = np.arctan2(Iy,Ix)*180/np.pi
+        #  print(Ix.shape, '\n', orientationImage[50:100, 50:100])
         # TODO-BLOCK-END
 
         # Save the harris image as harris.png for the website assignment
@@ -143,7 +156,8 @@ class HarrisKeypointDetector(KeypointDetector):
 
         # TODO 2: Compute the local maxima image
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO in features.py not implemented")
+        # raise Exception("TODO in features.py not implemented")
+        destImage = ndimage.maximum_filter(harrisImage, size=7)==harrisImage
         # TODO-BLOCK-END
 
         return destImage
@@ -183,17 +197,17 @@ class HarrisKeypointDetector(KeypointDetector):
             for x in range(width):
                 if not harrisMaxImage[y, x]:
                     continue
-
                 f = cv2.KeyPoint()
-
                 # TODO 3: Fill in feature f with location and orientation
                 # data here. Set f.size to 10, f.pt to the (x,y) coordinate,
                 # f.angle to the orientation in degrees and f.response to
                 # the Harris score
                 # TODO-BLOCK-BEGIN
-                raise Exception("TODO in features.py not implemented")
+                f.size = 10
+                f.pt = (x,y)
+                f.angle = orientationImage[x,y]
+                f.response = harrisImage[x,y]
                 # TODO-BLOCK-END
-
                 features.append(f)
 
         return features

@@ -7,7 +7,7 @@ import traceback
 
 from PIL import Image
 
-
+#np.set_printoptions(threshold='nan')
 # Saving and loading cv2 points
 def pickle_cv2(arr):
     index = []
@@ -68,6 +68,8 @@ def try_this(todo, run, truth, compare, *args, **kargs):
     else:
         if not compare(output, truth, **kargs):
             print("TODO {} doesn't pass test".format(todo))
+            print(output)
+            print("\n===========\n", truth)
             failed += 1
     return failed
 

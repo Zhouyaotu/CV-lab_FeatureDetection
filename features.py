@@ -120,19 +120,19 @@ class HarrisKeypointDetector(KeypointDetector):
         # for direction on how to do this. Also compute an orientation
         # for each pixel and store it in 'orientationImage.'
         # TODO-BLOCK-BEGIN
-        Ix = scipy.ndimage.sobel(srcImage,axis=1)
-        Iy = scipy.ndimage.sobel(srcImage,axis=0)
+        Ix = scipy.ndimage.sobel(srcImage, axis=1)
+        Iy = scipy.ndimage.sobel(srcImage, axis=0)
         #  print(Ix.shape,'\n',Iy[50:100,50:100])
-        gIx2 = scipy.ndimage.gaussian_filter(np.dot(Ix,Ix),sigma=0.5)
-        gIy2 = scipy.ndimage.gaussian_filter(np.dot(Iy,Iy),sigma=0.5)
-        gIxIy = scipy.ndimage.gaussian_filter(np.dot(Ix,Iy),sigma=0.5)
+        gIx2 = scipy.ndimage.gaussian_filter((Ix * Ix), sigma=0.5)
+        gIy2 = scipy.ndimage.gaussian_filter((Iy * Iy), sigma=0.5)
+        gIxIy = scipy.ndimage.gaussian_filter((Ix * Iy), sigma=0.5)
 
-        detH = np.dot(gIx2,gIy2)-np.dot(gIxIy,gIxIy)
-        traceH = gIxIy+gIxIy
-        k=0.1
-        harrisImage = detH-k*np.dot(traceH,traceH)
-
-        orientationImage = np.arctan2(Iy,Ix)*180/np.pi
+        detH = (gIx2 * gIy2) - (gIxIy * gIxIy)
+        traceH = gIx2 + gIy2
+        k = 0.1
+        harrisImage = detH - k * (traceH * traceH)
+        #  print(Ix.shape,'\n',harrisImage[50:100,50:100])
+        orientationImage = np.arctan2(Iy, Ix) * 180 / np.pi
         #  print(Ix.shape, '\n', orientationImage[50:100, 50:100])
         # TODO-BLOCK-END
 
@@ -157,7 +157,7 @@ class HarrisKeypointDetector(KeypointDetector):
         # TODO 2: Compute the local maxima image
         # TODO-BLOCK-BEGIN
         # raise Exception("TODO in features.py not implemented")
-        destImage = ndimage.maximum_filter(harrisImage, size=7)==harrisImage
+        destImage = ndimage.maximum_filter(harrisImage, size=7) == harrisImage
         # TODO-BLOCK-END
 
         return destImage
@@ -204,9 +204,9 @@ class HarrisKeypointDetector(KeypointDetector):
                 # the Harris score
                 # TODO-BLOCK-BEGIN
                 f.size = 10
-                f.pt = (x,y)
-                f.angle = orientationImage[x,y]
-                f.response = harrisImage[x,y]
+                f.pt = (x, y)
+                f.angle = orientationImage[y, x]
+                f.response = harrisImage[y, x]
                 # TODO-BLOCK-END
                 features.append(f)
 
@@ -260,7 +260,7 @@ class SimpleFeatureDescriptor(FeatureDescriptor):
         image /= 255.
         grayImage = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         desc = np.zeros((len(keypoints), 5 * 5))
-
+        padGrayImg = np.pad(grayImage, 2, 'reflect')
         for i, f in enumerate(keypoints):
             x, y = f.pt
             x, y = int(x), int(y)
@@ -269,7 +269,7 @@ class SimpleFeatureDescriptor(FeatureDescriptor):
             # sampled centered on the feature point. Store the descriptor
             # as a row-major vector. Treat pixels outside the image as zero.
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO in features.py not implemented")
+            desc[i] = padGrayImg[y:y+5, x:x+5].reshape(1,5*5)
             # TODO-BLOCK-END
 
         return desc
@@ -305,7 +305,22 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
             transMx = np.zeros((2, 3))
 
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO in features.py not implemented")
+            x, y = f.pt
+            t1Mx = transformations.get_trans_mx(np.array([-x, -y, 1]))
+            t1Mx = np.delete(t1Mx, 2, axis=0)
+            t1Mx = np.delete(t1Mx, 2, axis=1)
+            rotMx = transformations.get_rot_mx(0, 0, math.radians(f.angle))
+            rotMx = np.delete(rotMx, 2, axis=0)
+            rotMx = np.delete(rotMx, 2, axis=1)
+            scaleMx = transformations.get_scale_mx(1/5,1/5,1)
+            scaleMx = np.delete(scaleMx, 2, axis=0)
+            scaleMx = np.delete(scaleMx, 2, axis=1)
+            t2Mx = transformations.get_trans_mx(np.array([x, y, 1]))
+            t2Mx = np.delete(t2Mx, 2, axis=0)
+            t2Mx = np.delete(t2Mx, 2, axis=1)
+
+            transMx = np.dot(np.dot(np.dot(t1Mx, rotMx), scaleMx),t2Mx)[:-1, :]
+            # print(transMx)
             # TODO-BLOCK-END
 
             # Call the warp affine function to do the mapping
@@ -317,7 +332,10 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
             # variance. If the variance is zero then set the descriptor
             # vector to zero. Lastly, write the vector to desc.
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO in features.py not implemented")
+            if np.std(destImage) < 1e-5:
+                desc[i] = np.zeros((1, windowSize * windowSize))
+            else:
+                desc[i] = ((destImage - np.mean(destImage))/np.std(destImage)).reshape((1,windowSize * windowSize))
             # TODO-BLOCK-END
 
         return desc

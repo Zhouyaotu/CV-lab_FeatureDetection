@@ -306,20 +306,14 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
 
             # TODO-BLOCK-BEGIN
             x, y = f.pt
-            t1Mx = transformations.get_trans_mx(np.array([-x, -y, 1]))
-            t1Mx = np.delete(t1Mx, 2, axis=0)
-            t1Mx = np.delete(t1Mx, 2, axis=1)
-            rotMx = transformations.get_rot_mx(0, 0, math.radians(f.angle))
-            rotMx = np.delete(rotMx, 2, axis=0)
-            rotMx = np.delete(rotMx, 2, axis=1)
-            scaleMx = transformations.get_scale_mx(1/5,1/5,1)
-            scaleMx = np.delete(scaleMx, 2, axis=0)
-            scaleMx = np.delete(scaleMx, 2, axis=1)
-            t2Mx = transformations.get_trans_mx(np.array([x, y, 1]))
-            t2Mx = np.delete(t2Mx, 2, axis=0)
-            t2Mx = np.delete(t2Mx, 2, axis=1)
+            t1Mx = transformations.get_trans_mx(np.array([-x, -y, 0]))
+            rotMx = transformations.get_rot_mx(0, 0, -f.angle/180*np.pi)
+            scaleMx = transformations.get_scale_mx(0.2, 0.2, 0)
+            t2Mx = transformations.get_trans_mx(np.array([4, 4, 0]))
 
-            transMx = np.dot(np.dot(np.dot(t1Mx, rotMx), scaleMx),t2Mx)[:-1, :]
+            transMx = np.dot(np.dot(np.dot(t2Mx, scaleMx), rotMx), t1Mx)[:-1, :]
+            transMx = np.delete(transMx, 2, axis=0)
+            transMx = np.delete(transMx, 2, axis=1)
             # print(transMx)
             # TODO-BLOCK-END
 
@@ -332,10 +326,11 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
             # variance. If the variance is zero then set the descriptor
             # vector to zero. Lastly, write the vector to desc.
             # TODO-BLOCK-BEGIN
-            if np.std(destImage) < 1e-5:
+            std = np.std(destImage)
+            if std < 1e-5:
                 desc[i] = np.zeros((1, windowSize * windowSize))
             else:
-                desc[i] = ((destImage - np.mean(destImage))/np.std(destImage)).reshape((1,windowSize * windowSize))
+                desc[i] = ((destImage - np.mean(destImage))/std).reshape((1, windowSize * windowSize))
             # TODO-BLOCK-END
 
         return desc
@@ -461,7 +456,19 @@ class SSDFeatureMatcher(FeatureMatcher):
         # Note: multiple features from the first image may match the same
         # feature in the second image.
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO in features.py not implemented")
+        euDist1to2 = scipy.spatial.distance.cdist(desc1, desc2, metric='euclidean')
+        euDist2to1 = scipy.spatial.distance.cdist(desc2, desc1, metric='euclidean')
+        minDistList1 = np.argmin(euDist1to2, axis=1)
+        minDistList2 = np.argmin(euDist2to1, axis=1)
+        for i, x in enumerate(minDistList1):
+            m = cv2.DMatch()
+            y = minDistList2[x]
+            if y == i:
+                m.queryIdx = i
+                m.trainIdx = x
+                m.distance = euDist1to2[i][x]
+                print()
+                matches.append(m)
         # TODO-BLOCK-END
 
         return matches

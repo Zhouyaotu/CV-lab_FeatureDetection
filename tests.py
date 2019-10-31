@@ -68,8 +68,12 @@ def try_this(todo, run, truth, compare, *args, **kargs):
     else:
         if not compare(output, truth, **kargs):
             print("TODO {} doesn't pass test".format(todo))
-            print(output)
-            print("\n===========\n", truth)
+            print(truth.sum(),'\n',output.sum())
+            ans=0
+            for i in range(truth.shape[0]):
+                if (truth[i]-output[i]).sum() !=0:
+                    ans+=1
+            print(ans)
             failed += 1
     return failed
 
